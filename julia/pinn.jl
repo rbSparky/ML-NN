@@ -1,7 +1,33 @@
 using Flux
-MNODE = Chain(x -> [x],
+using Statistics
+
+NNODE = Chain(x -> [x],
             Dense(1,32,tanh),
             Dense(32,1),
             first)
-MNODE(1.0)
-g(t)         
+NNODE(1.0)
+g(t) = t * NNODE(t) + 1f0        
+
+ϵ = sqrt(eps(Float32))
+loss() = mean(abs2(((g(t + ϵ) - g(t))/ϵ) - cos(2π*t)) for t in 0:1f-2:1f0)
+
+
+opt = Flux.Descent(0.01)
+data2 = Iterators.repeated((), 5000)
+iter = 0
+cb2 = function ()
+    global iter += 1
+    if iter % 500 == 0
+        display(loss())
+    end
+end
+
+display(loss())
+Flux.train!(loss, Flux.params(NNODE), data2, opt; cb = cb2)
+
+using Plots
+
+t = 0:0.001:1.0
+plot(t,g.(t),label="NN")
+plot!(t,1.0 .+ sin.(2π.*t)/2π, label = "True")
+
